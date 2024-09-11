@@ -12,15 +12,15 @@ namespace JavaScript_Deobfuscator_TFG.Deobfuscators.ObfuscatorIO
     public class StringDecoderRewriter : AstRewriter
     {
         private V8ScriptEngine _engine;
-        private string _StringDecoderFunction;
-        private List<string> _StrObfuscatorIdentifiers;
-        private string _JsCodeStringDecoder;
-        public StringDecoderRewriter(string StringDecoderFunction, string JsCodeStringDecoder, string[] GlobalStrObfuscatorIdentifiers)
+        private string _stringDecoderFunction;
+        private List<string> _strObfuscatorIdentifiers;
+        private string _jsCodeStringDecoder;
+        public StringDecoderRewriter(string stringDecoderFunction, string jsCodeStringDecoder, List<string> globalStrObfuscatorIdentifiers)
         {
             _engine = new V8ScriptEngine();
-            _StrObfuscatorIdentifiers = [.. GlobalStrObfuscatorIdentifiers];
-            _StringDecoderFunction = StringDecoderFunction;
-            _JsCodeStringDecoder = JsCodeStringDecoder;
+            _strObfuscatorIdentifiers = globalStrObfuscatorIdentifiers.ToList();
+            _stringDecoderFunction = stringDecoderFunction;
+            _jsCodeStringDecoder = jsCodeStringDecoder;
 
         }
 
@@ -28,14 +28,14 @@ namespace JavaScript_Deobfuscator_TFG.Deobfuscators.ObfuscatorIO
         {
             foreach (var varDeclarations in variableDeclaration.Declarations)
             {
-                if (varDeclarations.Init.Type == Nodes.Identifier)
+                if (varDeclarations.Init != null && varDeclarations.Init.Type == Nodes.Identifier)
                 {
                     Identifier id = (Identifier)varDeclarations.Id;
                     Identifier init = (Identifier)varDeclarations.Init;
-                    if (init.Name.Equals(_StringDecoderFunction) || _StrObfuscatorIdentifiers.Contains(init.Name))
+                    if (init.Name.Equals(_stringDecoderFunction) || _strObfuscatorIdentifiers.Contains(init.Name))
                     {
-                        Console.WriteLine("---> Found String Decryptor: " + id.Name);
-                        _StrObfuscatorIdentifiers.Add(id.Name);
+                        Console.WriteLine("---> Encontrada Referencia a String Decoder: " + id.Name);
+                        _strObfuscatorIdentifiers.Add(id.Name);
                     }
                 }
 
@@ -46,14 +46,14 @@ namespace JavaScript_Deobfuscator_TFG.Deobfuscators.ObfuscatorIO
         {
             if (callExpression.Callee is Identifier callee)
             {
-                if (_StrObfuscatorIdentifiers.Contains(callee.Name))
+                if (_strObfuscatorIdentifiers.Contains(callee.Name))
                 {
                     String obfuscatedStrCall = callExpression.ToJavaScriptString();
-                    foreach(String obf in _StrObfuscatorIdentifiers)
+                    foreach(String obf in _strObfuscatorIdentifiers)
                     {
-                        obfuscatedStrCall = obfuscatedStrCall.Replace(obf, _StringDecoderFunction);
+                        obfuscatedStrCall = obfuscatedStrCall.Replace(obf, _stringDecoderFunction);
                     }
-                    String? deobfuscatedStr = DecodeString(obfuscatedStrCall);
+                    String deobfuscatedStr = DecodeString(obfuscatedStrCall);
                     if(deobfuscatedStr != null)
                     {
                         return new Literal("\"" + DecodeString(obfuscatedStrCall) + "\"");
@@ -65,14 +65,14 @@ namespace JavaScript_Deobfuscator_TFG.Deobfuscators.ObfuscatorIO
             return base.VisitCallExpression(callExpression);
         }
 
-        private String? DecodeString(String call)
+        private String DecodeString(String call)
         {
-            return _engine.Evaluate(_JsCodeStringDecoder + " " + call).ToString();
+            return _engine.Evaluate(_jsCodeStringDecoder + " " + call).ToString();
         }
 
         public String[] GetStrObfuscatorIdentifiers()
         {
-            return _StrObfuscatorIdentifiers.ToArray();
+            return _strObfuscatorIdentifiers.ToArray();
         }
         
     }

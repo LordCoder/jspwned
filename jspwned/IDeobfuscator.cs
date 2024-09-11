@@ -9,6 +9,7 @@ namespace JavaScript_Deobfuscator_TFG
 {
     public interface IDeobfuscator
     {
-        Node Deobfuscate(NodeList<Statement> ast);
+        static abstract NodeList<Statement> Deobfuscate(NodeList<Statement> ast);
+        static abstract bool IsObfuscatedWith(NodeList<Statement> AST);
     }
 }

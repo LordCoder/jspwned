@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "jspwned": {
+      "commandName": "Project",
+      "commandLineArgs": "\"C:\\Users\\LordCoder\\Desktop\\Proyectos Visual Studio\\jspwned\\jspwned\\bin\\Debug\\net8.0\\obfuscatorio.js\""
+    }
+  }
+}

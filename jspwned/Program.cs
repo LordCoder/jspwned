@@ -1,11 +1,6 @@
 ﻿using Esprima;
 using Esprima.Ast;
 using Esprima.Utils;
-using JavaScript_Deobfuscator_TFG.Deobfuscators;
-using NJsonSchema;
-using System.Collections.Generic;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
 
 namespace JavaScript_Deobfuscator_TFG
 {
@@ -13,11 +8,29 @@ namespace JavaScript_Deobfuscator_TFG
     {
         static void Main(string[] args)
         {
-            String obfuscatedJs = System.IO.File.ReadAllText("obfuscatedTFG.txt");
+            if(args.Length == 0)
+            {
+                Console.WriteLine("Se debe proporcionar un fichero en los argumentos.");
+                return;
+            }
+            String obfuscatedJs = System.IO.File.ReadAllText(args[0]);
             var parser = new JavaScriptParser();
             var program = parser.ParseScript(obfuscatedJs);
-            var newBody = Deobfuscators.ObfuscatorIO.Deobfuscator.Deobfuscate(program.Body);
-            Console.WriteLine(program.UpdateWith(newBody).ToJavaScriptString(true));
+            NodeList<Statement> programBody = program.Body;
+
+            if (Deobfuscators.ObfuscatorIO.Deobfuscator.IsObfuscatedWith(programBody))
+            {
+                var newBody = Deobfuscators.ObfuscatorIO.Deobfuscator.Deobfuscate(program.Body);
+                var newCode = program.UpdateWith(newBody);
+                Console.WriteLine("------- CODIGO DEOBFUSCADO -------");
+                Console.WriteLine(newCode.ToJavaScriptString(true));
+            }
+            else
+            {
+                Console.WriteLine("El script proporcionado no ha sido protegido con Obfuscator.io");
+            }
+            
+            Console.ReadLine();
         }
 
     }

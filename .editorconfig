@@ -1,0 +1,4 @@
+﻿[*.cs]
+
+# CA1826: No usar métodos Enumerable en las colecciones indexables
+dotnet_diagnostic.CA1826.severity = silent
