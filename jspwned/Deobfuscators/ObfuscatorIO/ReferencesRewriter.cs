@@ -11,18 +11,24 @@ namespace JavaScript_Deobfuscator_TFG.Deobfuscators.ObfuscatorIO
 {
     public class ReferencesRewriter : AstRewriter
     {
-        private Dictionary<String, String> _references;
+        private Dictionary<String, String> _variablesReferences;
+        private Dictionary<String, String> _functionsReferences;
 
-        public ReferencesRewriter(Dictionary<String, String> references)
+        public ReferencesRewriter(Dictionary<String, String> variablesReferences, Dictionary<String, String> functionsReferences)
         {
-            _references = references;
+            _variablesReferences = variablesReferences;
+            _functionsReferences = functionsReferences;
         }
 
         protected override object VisitIdentifier(Identifier identifier)
         {
-            if (_references.ContainsKey(identifier.Name))
+            if (_variablesReferences.ContainsKey(identifier.Name))
             {
-                return new Identifier(_references[identifier.Name]);
+                return new Identifier(_variablesReferences[identifier.Name]);
+            }
+            if (_functionsReferences.ContainsKey(identifier.Name))
+            {
+                return new Identifier(_functionsReferences[identifier.Name]);
             }
             return base.VisitIdentifier(identifier);
         }

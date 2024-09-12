@@ -24,23 +24,20 @@ namespace JavaScript_Deobfuscator_TFG.Deobfuscators.ObfuscatorIO
 
         }
 
-        protected override object VisitVariableDeclaration(VariableDeclaration variableDeclaration)
+        protected override object VisitVariableDeclarator(VariableDeclarator variableDeclarator)
         {
-            foreach (var varDeclarations in variableDeclaration.Declarations)
+            if (variableDeclarator.Init != null && variableDeclarator.Init.Type == Nodes.Identifier)
             {
-                if (varDeclarations.Init != null && varDeclarations.Init.Type == Nodes.Identifier)
+                Identifier id = (Identifier)variableDeclarator.Id;
+                Identifier init = (Identifier)variableDeclarator.Init;
+                if (init.Name.Equals(_stringDecoderFunction) || _strObfuscatorIdentifiers.Contains(init.Name))
                 {
-                    Identifier id = (Identifier)varDeclarations.Id;
-                    Identifier init = (Identifier)varDeclarations.Init;
-                    if (init.Name.Equals(_stringDecoderFunction) || _strObfuscatorIdentifiers.Contains(init.Name))
-                    {
-                        Console.WriteLine("---> Encontrada Referencia a String Decoder: " + id.Name);
-                        _strObfuscatorIdentifiers.Add(id.Name);
-                    }
+                    Console.WriteLine("---> Encontrada Referencia a String Decoder: " + id.Name);
+                    _strObfuscatorIdentifiers.Add(id.Name);
+                    return variableDeclarator.UpdateWith(variableDeclarator.Id, new Literal("\"\""));
                 }
-
             }
-            return base.VisitVariableDeclaration(variableDeclaration);
+            return base.VisitVariableDeclarator(variableDeclarator);
         }
         protected override object VisitCallExpression(CallExpression callExpression)
         {
@@ -49,16 +46,16 @@ namespace JavaScript_Deobfuscator_TFG.Deobfuscators.ObfuscatorIO
                 if (_strObfuscatorIdentifiers.Contains(callee.Name))
                 {
                     String obfuscatedStrCall = callExpression.ToJavaScriptString();
-                    foreach(String obf in _strObfuscatorIdentifiers)
+                    foreach (String obf in _strObfuscatorIdentifiers)
                     {
                         obfuscatedStrCall = obfuscatedStrCall.Replace(obf, _stringDecoderFunction);
                     }
                     String deobfuscatedStr = DecodeString(obfuscatedStrCall);
-                    if(deobfuscatedStr != null)
+                    if (deobfuscatedStr != null)
                     {
                         return new Literal("\"" + DecodeString(obfuscatedStrCall) + "\"");
                     }
-                    
+
                 }
             }
 
@@ -74,6 +71,6 @@ namespace JavaScript_Deobfuscator_TFG.Deobfuscators.ObfuscatorIO
         {
             return _strObfuscatorIdentifiers.ToArray();
         }
-        
+
     }
 }

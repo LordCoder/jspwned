@@ -32,36 +32,46 @@ namespace JavaScript_Deobfuscator_TFG.Deobfuscators.ObfuscatorIO
 
         private static NodeList<Statement> DeobfuscateSymbols(NodeList<Statement> AST)
         {
-            List<Statement> statements = new();
-            int counter = 1;
-            Dictionary<String, String> references = new();
+            int counterVariables = 1;
+            int counterFunctions = 1;
 
+            Dictionary<String, String> variablesReferences = [];
+            Dictionary<String, String> functionsReferences = [];
+
+            List<Statement> astRenamed = new();
+
+            // Renombrar los símbolos
             foreach (Esprima.Ast.Node node in AST)
             {
-                // Renombrar los símbolos
-                var rewriter = new SymbolRenamingRewriter(counter);
+                var rewriter = new SymbolRenamingRewriter(counterVariables, counterFunctions);
                 var statement = rewriter.VisitAndConvert(node, true, null) as Statement;
-                counter = rewriter.GetCounter();
-                references = rewriter.GetReferences();
-                // Actualizar las referencias
-                var rewriter2 = new ReferencesRewriter(references);
-                statements.Add(rewriter2.VisitAndConvert(statement, true, null) as Statement);
+                astRenamed.Add(statement);
+                // Obtenemos las variables contadores
+                counterVariables = rewriter.GetCounterVariables();
+                counterFunctions = rewriter.GetCounterFunctions();
+                // Obtenemos los diccionarios de referencias.
+                var currentVarReferences = rewriter.GetVariablesReferences();
+                foreach (var kv in currentVarReferences)
+                {
+                    variablesReferences.Add(kv.Key, kv.Value);
+                }
+                var currentFuncReferences = rewriter.GetFunctionsReferences();
+                foreach(var kv in currentFuncReferences)
+                {
+                    functionsReferences.Add(kv.Key, kv.Value);
+                }
+            }
+            List<Statement> astUpdatedRefs = new();
+
+            // Actualizar las referencias
+            foreach (Esprima.Ast.Node node in astRenamed)
+            {
+                var rewriter2 = new ReferencesRewriter(variablesReferences, functionsReferences);
+                astUpdatedRefs.Add(rewriter2.VisitAndConvert(node, true, null) as Statement);
             }
 
-            return NodeList.Create(statements);
+            return NodeList.Create(astUpdatedRefs);
         }
-        //private static NodeList<Statement> FixReferences(NodeList<Statement> AST)
-        //{
-        //    List<Statement> statements = new();
-        //    int counter = 1;
-        //    foreach (Esprima.Ast.Node node in AST)
-        //    {
-
-        //        var rewriter = new SymbolRenamingRewriter(counter);
-        //        statements.Add(rewriter.VisitAndConvert(node, true, null) as Statement);
-        //    }
-        //    return NodeList.Create(statements);
-        //}
 
         private static NodeList<Statement> DeobfuscateStrings(NodeList<Statement> AST, StringDecoder decoderFunc)
         {
@@ -77,9 +87,10 @@ namespace JavaScript_Deobfuscator_TFG.Deobfuscators.ObfuscatorIO
                     identifier.Name == decoderFunc.ArrayValuesFunction) ||
                     node is FunctionDeclaration fn && fn.Id != null && fn.Id.Name.Equals(decoderFunc))
                 {
-                    statements.Add(node as Statement);
+                    //statements.Add(node as Statement);
                     continue;
                 }
+
                 var rewriter = new StringDecoderRewriter(decoderFunc.DecoderFunction, decoderFunc.JsCode, globalStrObfuscatorIdentifiers);
                 statements.Add(rewriter.VisitAndConvert(node, true, null) as Statement);
 
@@ -116,7 +127,6 @@ namespace JavaScript_Deobfuscator_TFG.Deobfuscators.ObfuscatorIO
                                     .Where(st => st.Type == Esprima.Ast.Nodes.VariableDeclaration).FirstOrDefault() as VariableDeclaration;
                                 if (vd != null)
                                 {
-
                                     CallExpression callToArrayFunc = vd.Declarations.FirstOrDefault().Init as CallExpression;
                                     Identifier identifier = callToArrayFunc.Callee as Identifier;
                                     ArrayValuesFunc = identifier.Name;

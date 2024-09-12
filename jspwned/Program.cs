@@ -16,6 +16,7 @@ namespace JavaScript_Deobfuscator_TFG
             String obfuscatedJs = System.IO.File.ReadAllText(args[0]);
             var parser = new JavaScriptParser();
             var program = parser.ParseScript(obfuscatedJs);
+            String s = program.ToJsonString();
             NodeList<Statement> programBody = program.Body;
 
             if (Deobfuscators.ObfuscatorIO.Deobfuscator.IsObfuscatedWith(programBody))

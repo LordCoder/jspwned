@@ -7,52 +7,87 @@ using System.Linq;
 using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace JavaScript_Deobfuscator_TFG.Deobfuscators.ObfuscatorIO
 {
     public class SymbolRenamingRewriter : AstRewriter
     {
-        private int _counter;
-        private Dictionary<String, String> _references = new();
+        private int _counterVariables;
+        private int _counterFunctions;
+        private Dictionary<String, String> _variablesReferences = new();
+        private Dictionary<String, String> _functionsReferences = new();
 
-        public SymbolRenamingRewriter(int counter)
+
+        public SymbolRenamingRewriter(int counterVariables, int counterFunctions)
         {
-            _counter = counter;
+            _counterVariables = counterVariables;
+            _counterFunctions = counterFunctions;
         }
 
-        protected override object VisitVariableDeclaration(VariableDeclaration variableDeclaration)
+        protected override object VisitVariableDeclarator(VariableDeclarator variableDeclarator)
         {
-            List<VariableDeclarator> declarations = new();
-            foreach (var declarator in variableDeclaration.Declarations)
+            Identifier id = (Identifier)variableDeclarator.Id;
+            if (id.Name.StartsWith("_0x"))
             {
-                Identifier id = (Identifier)declarator.Id;
-                if (id.Name.StartsWith("_0x"))
-                {
-                    String newName = "variable" + _counter.ToString("D4");
-                    Console.WriteLine("Encontrada variable protegida. Identificador: " + id.Name + ". Nuevo nombre: " + newName);
-                    _counter++;
-                    _references.Add(id.Name, newName);
-                    declarations.Add(declarator.UpdateWith(new Identifier(newName), declarator.Init));
-                }
-                else
-                {
-                    declarations.Add(declarator);
-
-                }
+                String newName = "variable" + _counterVariables.ToString("D4");
+                Console.WriteLine("Encontrada variable con nombre protegido. Identificador: " + id.Name + ". Nuevo nombre: " + newName);
+                _counterVariables++;
+                _variablesReferences.Add(id.Name, newName);
+                return variableDeclarator.UpdateWith(new Identifier(newName), variableDeclarator.Init);
             }
-            return variableDeclaration.UpdateWith(NodeList.Create(declarations));
+            return base.VisitVariableDeclarator(variableDeclarator);
         }
-        protected override object VisitCallExpression(CallExpression callExpression)
+        protected override object VisitFunctionDeclaration(FunctionDeclaration functionDeclaration)
         {
+            Identifier id = functionDeclaration.Id;
+            if (id.Name.StartsWith("_0x"))
+            {
+                // Renombrar el identificador de la función
+                String newNameFunction = "function" + _counterFunctions.ToString("D4");
+                Console.WriteLine("Encontrada función con nombre protegido. Identificador: " + id.Name + ". Nuevo nombre: " + newNameFunction);
+                _counterFunctions++;
+                _functionsReferences.Add(id.Name, newNameFunction);
+                // Renombrar los parámetros
+                int counterParameters = 1;
+                List<Node> newParametersIdentifiers = new();
+                foreach (Node parameter in functionDeclaration.Params)
+                {
+                    Identifier parameterCast = parameter as Identifier;
+                    if (parameterCast.Name.StartsWith("_0x"))
+                    {
+                        String newNameParam = "param" + counterParameters.ToString("D4");
+                        Console.WriteLine("Encontrado parámetro con nombre protegido. Identificador: " + parameterCast.Name + ". Nuevo nombre: " + newNameParam);
+                        _variablesReferences.Add(parameterCast.Name, newNameParam);
 
-            return base.VisitCallExpression(callExpression);
+                        newParametersIdentifiers.Add(new Identifier(newNameParam));
+                        counterParameters++;
+                    }
+                    else
+                    {
+                        newParametersIdentifiers.Add(parameterCast);
+                    }
+                }
+                return base.VisitFunctionDeclaration(functionDeclaration.UpdateWith(new Identifier(newNameFunction), NodeList.Create(newParametersIdentifiers), functionDeclaration.Body));
+
+            }
+            return base.VisitFunctionDeclaration(functionDeclaration);
         }
-        public int GetCounter() {
-            return _counter;
-        }
-        public Dictionary<String, String> GetReferences()
+        public int GetCounterVariables()
         {
-            return _references;
+            return _counterVariables;
+        }
+        public int GetCounterFunctions()
+        {
+            return _counterFunctions;
+        }
+        public Dictionary<String, String> GetVariablesReferences()
+        {
+            return _variablesReferences;
+        }
+        public Dictionary<String, String> GetFunctionsReferences()
+        {
+            return _functionsReferences;
         }
 
     }
